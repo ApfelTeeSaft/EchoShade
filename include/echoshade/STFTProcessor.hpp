@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <complex>
+#include <functional>
 #include <cstdint>
 
 namespace echoshade {
@@ -8,39 +9,46 @@ namespace echoshade {
 enum class WindowType { Hann, BlackmanHarris, Kaiser };
 
 struct STFTConfig {
-    int        fftSize     = 1024;
-    int        hopSize     = 256;
-    WindowType windowType  = WindowType::Hann;
-    double     kaiserBeta  = 8.0;   // only for Kaiser window
+    int        fftSize    = 1024;
+    int        hopSize    = 256;   // 75% overlap by default (4× oversampling)
+    WindowType windowType = WindowType::Hann;
+    double     kaiserBeta = 8.0;   // shape parameter, only for Kaiser window
 };
 
-/// Short-Time Fourier Transform analysis + synthesis via overlap-add.
-/// Holds one frame's worth of complex spectrum for DSP stages to modify.
 class STFTProcessor {
 public:
+    using SpectralCallback = std::function<void(std::complex<float>* spectrum,
+                                                int numBins,
+                                                double sampleRate)>;
+
     explicit STFTProcessor(const STFTConfig& cfg);
     ~STFTProcessor();
 
     STFTProcessor(const STFTProcessor&)            = delete;
     STFTProcessor& operator=(const STFTProcessor&) = delete;
 
-    int fftSize() const;
-    int hopSize() const;
-    int numBins() const;   // fftSize/2 + 1
+    int fftSize() const noexcept;
+    int hopSize() const noexcept;
+    int numBins() const noexcept;
 
-    /// Push one hop of time-domain samples (frameCount == hopSize).
-    /// When a full frame is available, calls the provided spectral callback
-    /// with the complex spectrum, then synthesises output via OLA.
-    using SpectralCallback = void(*)(std::complex<float>* spectrum,
-                                     int numBins, void* userData);
+    double binFrequency(int bin, double sampleRate) const noexcept;
 
-    void pushSamples(const float* samples, int count,
-                     SpectralCallback cb, void* userData);
+    void pushSamples(const float*            samples,
+                     int                      count,
+                     const SpectralCallback&  spectralCb,
+                     double                   sampleRate) noexcept;
 
-    /// Pull synthesised output samples (frameCount == hopSize per call to push).
-    int  pullSamples(float* out, int maxCount);
+    int pullSamples(float* out, int maxCount) noexcept;
 
-    void reset();
+    int available() const noexcept;
+
+    void reset() noexcept;
+
+    static std::vector<float> makeWindow(WindowType type, int size,
+                                         double kaiserBeta = 8.0);
+
+    static std::vector<float> computeNormEnv(const std::vector<float>& window,
+                                              int hopSize);
 
 private:
     struct Impl;

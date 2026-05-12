@@ -4,6 +4,9 @@ add_library(echoshade_core STATIC
     core/AudioOutput.cpp
     core/DSPPipeline.cpp
     core/StreamProcessor.cpp
+    core/STFTProcessor.cpp
+    core/STFTStage.cpp
+    core/MelFilterbank.cpp
     perturbation/PerturbationEngine.cpp
     platforms/PlatformRegistry.cpp
     metrics/MetricsCollector.cpp
