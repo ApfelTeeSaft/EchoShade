@@ -1,42 +1,22 @@
 include(CTest)
 include(Catch)
 
-add_executable(test_ringbuffer test_ringbuffer.cpp)
-target_include_directories(test_ringbuffer PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/src
-)
-target_link_libraries(test_ringbuffer PRIVATE Catch2::Catch2WithMain)
-catch_discover_tests(test_ringbuffer)
+function(echoshade_test name src)
+    add_executable(${name} ${src})
+    target_include_directories(${name} PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
+    )
+    target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain echoshade_core)
+    catch_discover_tests(${name})
+endfunction()
 
-add_executable(test_dsp_pipeline test_dsp_pipeline.cpp)
-target_include_directories(test_dsp_pipeline PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/src
-)
-target_link_libraries(test_dsp_pipeline PRIVATE Catch2::Catch2WithMain echoshade_core)
-catch_discover_tests(test_dsp_pipeline)
-
-add_executable(test_math_utils test_math_utils.cpp)
-target_include_directories(test_math_utils PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/src
-)
-target_link_libraries(test_math_utils PRIVATE Catch2::Catch2WithMain)
-catch_discover_tests(test_math_utils)
-
-add_executable(test_config test_config.cpp)
-target_include_directories(test_config PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/src
-)
-target_link_libraries(test_config PRIVATE Catch2::Catch2WithMain echoshade_core)
-catch_discover_tests(test_config)
-
-add_executable(test_platform_registry test_platform_registry.cpp)
-target_include_directories(test_platform_registry PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/src
-)
-target_link_libraries(test_platform_registry PRIVATE Catch2::Catch2WithMain echoshade_core)
-catch_discover_tests(test_platform_registry)
+echoshade_test(test_ringbuffer         test_ringbuffer.cpp)
+echoshade_test(test_dsp_pipeline       test_dsp_pipeline.cpp)
+echoshade_test(test_math_utils         test_math_utils.cpp)
+echoshade_test(test_config             test_config.cpp)
+echoshade_test(test_platform_registry  test_platform_registry.cpp)
+echoshade_test(test_ringbuffer_concurrent  test_ringbuffer_concurrent.cpp)
+echoshade_test(test_latency_bench         test_latency_bench.cpp)
+echoshade_test(test_atomic_params         test_atomic_params.cpp)
+echoshade_test(test_audio_device          test_audio_device.cpp)

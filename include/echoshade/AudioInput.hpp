@@ -32,10 +32,10 @@ public:
     int    framesPerBuffer() const { return cfg_.framesPerBuffer; }
 
 private:
+    AudioInputConfig cfg_;
+    Callback         callback_;
     struct Impl;
     Impl* impl_ = nullptr;
-    AudioInputConfig cfg_;
-    Callback callback_;
 };
 
 } // namespace echoshade

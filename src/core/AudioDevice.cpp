@@ -1,74 +1,83 @@
 #include "echoshade/AudioDevice.hpp"
+#include "PortAudioContext.hpp"
 #include <portaudio.h>
-#include <stdexcept>
-#include <cstring>
 
 namespace echoshade {
 
 namespace {
 
-void ensurePA() {
-    static bool initialized = false;
-    if (!initialized) {
-        PaError err = Pa_Initialize();
-        if (err != paNoError)
-            throw std::runtime_error(std::string("PortAudio init failed: ") + Pa_GetErrorText(err));
-        initialized = true;
-    }
-}
-
-AudioDeviceInfo fromPa(int idx, const PaDeviceInfo* info, bool defIn, bool defOut) {
+AudioDeviceInfo fromPaInfo(int idx, const PaDeviceInfo* info,
+                            bool defIn, bool defOut) {
     AudioDeviceInfo d;
-    d.index               = idx;
-    d.name                = info->name ? info->name : "(unknown)";
-    d.maxInputChannels    = info->maxInputChannels;
-    d.maxOutputChannels   = info->maxOutputChannels;
-    d.defaultSampleRate   = info->defaultSampleRate;
-    d.isDefaultInput      = defIn;
-    d.isDefaultOutput     = defOut;
+    d.index             = idx;
+    d.name              = info->name ? info->name : "(unknown)";
+    d.maxInputChannels  = info->maxInputChannels;
+    d.maxOutputChannels = info->maxOutputChannels;
+    d.defaultSampleRate = info->defaultSampleRate;
+    d.defaultLowInputLatencyMs  = info->defaultLowInputLatency  * 1000.0;
+    d.defaultLowOutputLatencyMs = info->defaultLowOutputLatency * 1000.0;
+    d.isDefaultInput    = defIn;
+    d.isDefaultOutput   = defOut;
     return d;
 }
 
+void ensureInit() { PortAudioContext::require(); }
+
 } // namespace
 
+bool AudioDevice::isAvailable() noexcept {
+    try {
+        PortAudioContext::require();
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 std::vector<AudioDeviceInfo> AudioDevice::enumerateInputs() {
-    ensurePA();
-    std::vector<AudioDeviceInfo> result;
+    ensureInit();
     const int defIn  = Pa_GetDefaultInputDevice();
     const int count  = Pa_GetDeviceCount();
+    std::vector<AudioDeviceInfo> result;
+    result.reserve(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
         const PaDeviceInfo* info = Pa_GetDeviceInfo(i);
         if (info && info->maxInputChannels > 0)
-            result.push_back(fromPa(i, info, i == defIn, false));
+            result.push_back(fromPaInfo(i, info, i == defIn, false));
     }
     return result;
 }
 
 std::vector<AudioDeviceInfo> AudioDevice::enumerateOutputs() {
-    ensurePA();
-    std::vector<AudioDeviceInfo> result;
+    ensureInit();
     const int defOut = Pa_GetDefaultOutputDevice();
     const int count  = Pa_GetDeviceCount();
+    std::vector<AudioDeviceInfo> result;
+    result.reserve(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
         const PaDeviceInfo* info = Pa_GetDeviceInfo(i);
         if (info && info->maxOutputChannels > 0)
-            result.push_back(fromPa(i, info, false, i == defOut));
+            result.push_back(fromPaInfo(i, info, false, i == defOut));
     }
     return result;
 }
 
-AudioDeviceInfo AudioDevice::defaultInput() {
-    ensurePA();
-    const int idx  = Pa_GetDefaultInputDevice();
-    const auto* i  = Pa_GetDeviceInfo(idx);
-    return i ? fromPa(idx, i, true, false) : AudioDeviceInfo{};
+std::optional<AudioDeviceInfo> AudioDevice::defaultInput() {
+    ensureInit();
+    const int idx = Pa_GetDefaultInputDevice();
+    if (idx == paNoDevice) return std::nullopt;
+    const PaDeviceInfo* info = Pa_GetDeviceInfo(idx);
+    if (!info) return std::nullopt;
+    return fromPaInfo(idx, info, true, false);
 }
 
-AudioDeviceInfo AudioDevice::defaultOutput() {
-    ensurePA();
-    const int idx  = Pa_GetDefaultOutputDevice();
-    const auto* i  = Pa_GetDeviceInfo(idx);
-    return i ? fromPa(idx, i, false, true) : AudioDeviceInfo{};
+std::optional<AudioDeviceInfo> AudioDevice::defaultOutput() {
+    ensureInit();
+    const int idx = Pa_GetDefaultOutputDevice();
+    if (idx == paNoDevice) return std::nullopt;
+    const PaDeviceInfo* info = Pa_GetDeviceInfo(idx);
+    if (!info) return std::nullopt;
+    return fromPaInfo(idx, info, false, true);
 }
 
 } // namespace echoshade

@@ -1,26 +1,31 @@
 #include "echoshade/AudioOutput.hpp"
+#include "PortAudioContext.hpp"
 #include <portaudio.h>
-#include <stdexcept>
 #include <cstring>
 
 namespace echoshade {
 
 struct PAOutputState {
-    AudioOutput::Callback* callback;
-    int channels;
+    AudioOutput::Callback* callback = nullptr;
+    int                    channels = 1;
 };
 
-static int paOutputCb(const void* /*in*/, void* outBuf,
-                      unsigned long frames,
-                      const PaStreamCallbackTimeInfo*,
-                      PaStreamCallbackFlags,
-                      void* userData) {
-    auto* state = static_cast<PAOutputState*>(userData);
-    float* out  = static_cast<float*>(outBuf);
-    if (state->callback && *state->callback)
-        (*state->callback)(out, static_cast<int>(frames), state->channels);
-    else
-        std::memset(out, 0, sizeof(float) * frames * static_cast<std::size_t>(state->channels));
+static int paOutputCallback(const void*                     /* inBuf */,
+                             void*                          outBuf,
+                             unsigned long                  frameCount,
+                             const PaStreamCallbackTimeInfo* /* time */,
+                             PaStreamCallbackFlags          /* flags */,
+                             void*                          userData) noexcept {
+    const auto* st = static_cast<const PAOutputState*>(userData);
+    auto* out      = static_cast<float*>(outBuf);
+    const auto& cb = *st->callback;
+    if (cb) {
+        cb(out, static_cast<int>(frameCount), st->channels);
+    } else {
+        std::memset(out, 0, sizeof(float)
+                    * static_cast<std::size_t>(frameCount)
+                    * static_cast<std::size_t>(st->channels));
+    }
     return paContinue;
 }
 
@@ -29,15 +34,11 @@ struct AudioOutput::Impl {
     PAOutputState* state  = nullptr;
 };
 
-AudioOutput::AudioOutput(const AudioOutputConfig& cfg) : cfg_(cfg) {
-    static bool paInit = false;
-    if (!paInit) {
-        PaError err = Pa_Initialize();
-        if (err != paNoError)
-            throw std::runtime_error(std::string("PortAudio: ") + Pa_GetErrorText(err));
-        paInit = true;
-    }
-    impl_ = new Impl{};
+AudioOutput::AudioOutput(const AudioOutputConfig& cfg)
+    : cfg_(cfg)
+    , impl_(new Impl{})
+{
+    PortAudioContext::require();
 }
 
 AudioOutput::~AudioOutput() {
@@ -52,11 +53,11 @@ void AudioOutput::setCallback(Callback cb) {
 bool AudioOutput::start() {
     if (impl_->stream) return true;
 
-    int devIdx = cfg_.deviceIndex < 0
+    const int devIdx = (cfg_.deviceIndex < 0)
         ? Pa_GetDefaultOutputDevice()
         : cfg_.deviceIndex;
 
-    impl_->state = new PAOutputState{&callback_, cfg_.channels};
+    if (devIdx == paNoDevice) return false;
 
     PaStreamParameters params{};
     params.device                    = devIdx;
@@ -66,25 +67,44 @@ bool AudioOutput::start() {
         Pa_GetDeviceInfo(devIdx)->defaultLowOutputLatency;
     params.hostApiSpecificStreamInfo = nullptr;
 
-    PaError err = Pa_OpenStream(&impl_->stream, nullptr, &params,
-                                cfg_.sampleRate,
-                                static_cast<unsigned long>(cfg_.framesPerBuffer),
-                                paNoFlag, paOutputCb, impl_->state);
+    impl_->state = new PAOutputState{&callback_, cfg_.channels};
+
+    PaError err = Pa_OpenStream(
+        &impl_->stream,
+        nullptr,   // input params (none)
+        &params,
+        cfg_.sampleRate,
+        static_cast<unsigned long>(cfg_.framesPerBuffer),
+        paNoFlag,
+        paOutputCallback,
+        impl_->state
+    );
+
     if (err != paNoError) {
         delete impl_->state;
         impl_->state  = nullptr;
         impl_->stream = nullptr;
         return false;
     }
-    Pa_StartStream(impl_->stream);
+
+    err = Pa_StartStream(impl_->stream);
+    if (err != paNoError) {
+        Pa_CloseStream(impl_->stream);
+        delete impl_->state;
+        impl_->state  = nullptr;
+        impl_->stream = nullptr;
+        return false;
+    }
     return true;
 }
 
 void AudioOutput::stop() {
     if (!impl_->stream) return;
+
     Pa_StopStream(impl_->stream);
     Pa_CloseStream(impl_->stream);
     impl_->stream = nullptr;
+    
     delete impl_->state;
     impl_->state = nullptr;
 }
