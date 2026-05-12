@@ -152,7 +152,7 @@ def main():
     fig.tight_layout()
     fig.savefig(out_cmp, dpi=150)
     plt.close(fig)
-    print(f"\nSaved comparison plot → {out_cmp}")
+    print(f"\nSaved comparison plot -> {out_cmp}")
 
     # Difference map.
     fig, ax = plt.subplots(figsize=(10, 4))
@@ -167,7 +167,7 @@ def main():
     fig.tight_layout()
     fig.savefig(out_diff, dpi=150)
     plt.close(fig)
-    print(f"Saved difference map  → {out_diff}")
+    print(f"Saved difference map  -> {out_diff}")
 
 
 if __name__ == "__main__":
