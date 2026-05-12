@@ -1,0 +1,26 @@
+{
+    "platform": "twitch",
+    "displayName": "Twitch",
+    "primaryCodec": {
+        "name": "aac_128",
+        "bitrate": 128000,
+        "isMDCT": true,
+        "perturbBoostDb": 2.0
+    },
+    "secondaryCodec": {
+        "name": "opus_160",
+        "bitrate": 160000,
+        "isMDCT": true,
+        "perturbBoostDb": 1.0
+    },
+    "targetLufs": -14.0,
+    "loudnessBoostDb": 3.0,
+    "frequencyEmphasis": [
+        { "lowHz": 1000.0, "highHz": 4000.0, "gainFactor": 1.5 },
+        { "lowHz": 4000.0, "highHz": 8000.0, "gainFactor": 1.2 }
+    ],
+    "phaseNoiseScale": 0.15,
+    "magnitudeNoiseScale": 0.08,
+    "formantDriftHz": 20.0,
+    "harmonicAmplitude": 0.05
+}

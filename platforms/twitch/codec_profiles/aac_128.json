@@ -1,0 +1,13 @@
+{
+    "name": "aac_128",
+    "codec": "AAC-LC",
+    "bitrate": 128000,
+    "sampleRate": 44100,
+    "isMDCT": true,
+    "frameSize": 1024,
+    "psychoacousticModel": "AAC",
+    "perturbBoostDb": 2.0,
+    "frequencySurvivabilityFloorHz": 200.0,
+    "frequencySurvivabilityCeilHz":  16000.0,
+    "notes": "Twitch CDN output codec. MDCT-based, bit allocation peaks at 1-4 kHz."
+}

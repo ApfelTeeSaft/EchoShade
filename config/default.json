@@ -1,0 +1,12 @@
+{
+    "platform": "twitch",
+    "intensity": 0.5,
+    "streaming": false,
+    "sampleRate": 48000.0,
+    "enableEmbeddingDisruptor": true,
+    "enableFormantDestabilizer": true,
+    "enableHarmonicPerturber": true,
+    "enablePhasePerturber": true,
+    "enableAdaptiveNoise": true,
+    "enableTemporalInconsistency": true
+}

@@ -1,0 +1,19 @@
+{
+    "name": "twitch_standard",
+    "description": "Balanced perturbation for Twitch AAC/Opus pipelines",
+    "intensity": 0.5,
+    "codecTarget": "aac_128",
+    "frequencyBands": [
+        { "lowHz": 300.0,  "highHz": 1000.0, "gainFactor": 0.8 },
+        { "lowHz": 1000.0, "highHz": 4000.0, "gainFactor": 1.5 },
+        { "lowHz": 4000.0, "highHz": 8000.0, "gainFactor": 1.2 },
+        { "lowHz": 8000.0, "highHz": 16000.0,"gainFactor": 0.5 }
+    ],
+    "phaseNoiseScale":      0.15,
+    "magnitudeNoiseScale":  0.08,
+    "formantDriftHz":       20.0,
+    "harmonicAmplitude":    0.05,
+    "temporalJitterMs":     1.5,
+    "resampleRobust":       true,
+    "normalizationRobust":  true
+}
